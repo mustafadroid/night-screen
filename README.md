@@ -63,20 +63,16 @@ cd -  # back to the repo
 # build (wrappers in cmake/ pin -target x86_64-windows-gnu -static)
 cmake -S . -B build-win --toolchain cmake/toolchain-windows-zig.cmake -DCMAKE_BUILD_TYPE=Release
 cmake --build build-win -j
-file build-win/nightscreen.exe   # PE32+ executable (console) x86-64, for MS Windows
+file build-win/nightscreen.exe   # PE32+ executable (GUI) x86-64, for MS Windows
 ```
 
 Ready-made binaries ship with each GitHub release (`nightscreen-windows-x64.zip`
 + `SHA256SUMS.txt` — CI builds and attaches them automatically on version tags).
 
-Copy `nightscreen.exe` to the Windows PC, then in PowerShell/CMD:
-
-```bat
-nightscreen.exe daemon
-```
-
-A crescent-moon icon appears in the system tray (pure Win32, no installer/DLLs):
-- **Double-click** the icon (or right-click → *Open night-screen*) summons the
+Copy `nightscreen.exe` to the Windows PC and double-click it — **no terminal
+window opens**. The crescent-moon icon in the system tray (near the volume
+indicator, pure Win32, no installer/DLLs) shows the app is running:
+- **Double-click** the icon (or right-click → *Open night-screen*)
   summons the main control window: temperature + brightness sliders, preset
   buttons, schedule mode (Manual / Scheduled / Sunrise-sunset), 20-20-20 break
   controls — all applied live.
@@ -86,7 +82,11 @@ A crescent-moon icon appears in the system tray (pure Win32, no installer/DLLs):
   with the fullscreen overlay.
 
 Then open **http://127.0.0.1:7788/** for the same settings in a browser.
-`autostart on` registers `HKCU\...\Run\night-screen`.
+`autostart on` registers `HKCU\...\Run\night-screen` (starts tray-only at login).
+
+> **Terminal use:** one-shot commands (`status`, `temp`, `preset`, …) print
+> into the terminal you run them from. `daemon --console` forces a debug
+> console window.
 
 > **Windows Defender / SmartScreen:** the exe is unsigned (normal for indie
 > open source), so expect a one-time "Unknown publisher → Run anyway" prompt.

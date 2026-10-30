@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <map>
 #include <mutex>
@@ -761,8 +762,9 @@ void TrayGui::start(SnapFn get, UpdateFn set, VoidFn quit, VoidFn breakNow,
     std::lock_guard<std::mutex> lk(g_mu);
     g_owner = this;
   }
-  std::lock_guard<std::mutex> tlk(g_threadsMu);
-  g_threads[this].thread = std::thread([this] {
+  {
+    std::lock_guard<std::mutex> tlk(g_threadsMu);
+    g_threads[this].thread = std::thread([this] {
     INITCOMMONCONTROLSEX icc{sizeof(icc), ICC_BAR_CLASSES | ICC_STANDARD_CLASSES};
     InitCommonControlsEx(&icc);
     HINSTANCE hInst = GetModuleHandleA(nullptr);
@@ -816,6 +818,16 @@ void TrayGui::start(SnapFn get, UpdateFn set, VoidFn quit, VoidFn breakNow,
     if (g_owner == this) g_owner = nullptr;
     g_ui = UiState{};
   });
+  } // release g_threadsMu before waiting
+  // Wait until the tray window exists so an immediate balloon/notification
+  // can't race into the no-tray fallback.
+  for (int i = 0; i < 100; ++i) {
+    {
+      std::lock_guard<std::mutex> lk(g_mu);
+      if (g_ui.trayHwnd) break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
 }
 
 void TrayGui::stop() {

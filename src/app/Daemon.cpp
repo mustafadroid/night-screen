@@ -75,6 +75,9 @@ void Daemon::run() {
       [this] { stop(); },
       [this] { breakNow(); },
       [this](int m) { snoozeBreak(m); });
+  // Headless on purpose (GUI subsystem, no console): one balloon so the user
+  // can find the tray moon. Tray start waits for its window, so no race.
+  notify("night-screen", "Running in the tray — double-click the moon for settings.");
 #endif
 
   std::string err;

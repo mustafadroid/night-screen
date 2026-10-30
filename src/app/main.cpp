@@ -28,6 +28,32 @@ void onSigint(int) { g_stop = true; }
 #include <windows.h>
 static nightscreen::Daemon* g_daemon = nullptr;
 static std::atomic<bool> g_done{false};
+// Console-less GUI app: one-shot commands borrow the caller's console so their
+// output is visible; `daemon` stays headless unless --console is passed.
+static void useParentConsole() {
+  if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+#if defined(_MSC_VER)
+    FILE* f = nullptr;
+    freopen_s(&f, "CONOUT$", "w", stdout);
+    freopen_s(&f, "CONOUT$", "w", stderr);
+#else
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
+#endif
+  }
+}
+static void useOwnConsole() {
+  if (AllocConsole()) {
+#if defined(_MSC_VER)
+    FILE* f = nullptr;
+    freopen_s(&f, "CONOUT$", "w", stdout);
+    freopen_s(&f, "CONOUT$", "w", stderr);
+#else
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
+#endif
+  }
+}
 // Closing the console window (or logoff/shutdown/Ctrl+C) must still restore
 // the display: stop the daemon and wait for its cleanup (gamma reset).
 static BOOL WINAPI onConsoleCtrl(DWORD ev) {
@@ -47,7 +73,9 @@ void usage() {
       << "night-screen — blue-light filter & eye-break reminders\n"
          "\n"
          "Usage:\n"
-         "  nightscreen daemon [--port N]        run filter + breaks + web UI (default)\n"
+         "  nightscreen daemon [--port N] [--console]\n"
+         "                                   run filter + breaks + tray icon\n"
+         "                                   (no terminal window; --console forces one)\n"
          "  nightscreen on|off|toggle            enable/disable filter (then exit)\n"
          "  nightscreen temp <1000-6500>         set color temperature\n"
          "  nightscreen brightness <5-100>       set brightness\n"
@@ -90,11 +118,23 @@ int main(int argc, char** argv) {
   }
 
   std::string cmd = args.empty() ? "daemon" : args[0];
+#if defined(_WIN32)
+  // GUI subsystem = no console window. One-shot commands borrow the caller's
+  // console for output; `daemon` stays invisible unless --console is given.
+  if (cmd != "daemon") useParentConsole();
+#endif
 
   if (cmd == "daemon" || cmd == "ui") {
+    bool wantConsole = false;
     for (size_t i = 1; i < args.size(); ++i) {
       if (args[i] == "--port" && i + 1 < args.size()) cfg.uiPort = std::stoi(args[++i]);
+      if (args[i] == "--console") wantConsole = true; // debug: force a console
     }
+#if defined(_WIN32)
+    if (wantConsole) useOwnConsole(); // daemon is headless by default (tray only)
+#else
+    (void)wantConsole;
+#endif
     cfg.saveTo(Settings::defaultPath());
     if (cmd == "ui") {
       std::cout << "Open http://127.0.0.1:" << cfg.uiPort

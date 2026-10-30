@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(night-screen VERSION 1.3.0 LANGUAGES C CXX)
+project(night-screen VERSION 1.3.1 LANGUAGES C CXX)
 
 # C++26 everywhere. Requires GCC 14+, Clang 18+, MSVC 19.40+ / VS 2022 17.10+.
 # If your default compiler is too old, configure with:
@@ -110,6 +110,18 @@ add_executable(nightscreen src/app/main.cpp)
 target_link_libraries(nightscreen PRIVATE nightscreen_core)
 if(WINDOWS_VERSION_OBJ)
   target_sources(nightscreen PRIVATE ${WINDOWS_VERSION_OBJ})
+endif()
+if(WIN32)
+  # GUI subsystem: no console window — the tray icon is the app's face.
+  # One-shot CLI commands re-attach to the caller's console (see main.cpp).
+  set_target_properties(nightscreen PROPERTIES WIN32_EXECUTABLE TRUE)
+  if(MSVC)
+    target_link_options(nightscreen PRIVATE /ENTRY:mainCRTStartup)
+  else()
+    # CMake only adds -mwindows itself for GNU compilers, and zig's clang
+    # driver ignores -mwindows — pass the subsystem straight to the linker.
+    target_link_options(nightscreen PRIVATE "LINKER:--subsystem,windows")
+  endif()
 endif()
 
 # Small self-check binary (no test framework needed)
