@@ -113,7 +113,8 @@ software dim overlay fades in (marked in the web UI) — that part works even on
 displays whose hardware gamma bottoms out early.
 
 Web panel (while daemon runs): **http://127.0.0.1:7788/** — sliders, presets,
-schedule mode, sunrise/sunset lat/lon, 20-20-20 break settings, snooze.
+schedule mode, sunrise/sunset lat/lon, 20-20-20 break settings, and an
+instant on/off switch for the OLED guard (no Apply needed).
 REST: `GET /api/state`, `POST /api/state`.
 
 ## Platform notes

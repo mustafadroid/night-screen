@@ -246,7 +246,7 @@ std::string embeddedUiHtml() {
   return R"HTML(<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>night-screen</title>
-<style>body{font-family:system-ui,sans-serif;background:#111418;color:#e8e8e8;margin:0;padding:24px}main{max-width:640px;margin:auto}.card{background:#1c2127;border-radius:12px;padding:20px;margin-bottom:16px}input[type=range]{width:100%}button{padding:8px 14px;border-radius:8px;border:1px solid #444;background:#2a3138;color:#fff;cursor:pointer}button.primary{background:#4a7db5;border-color:#4a7db5}.row{display:flex;gap:8px;flex-wrap:wrap}label{display:block;margin:12px 0 4px;color:#aaa;font-size:13px}output{color:#fff}.presets{display:flex;gap:8px;flex-wrap:wrap}</style>
+<style>body{font-family:system-ui,sans-serif;background:#111418;color:#e8e8e8;margin:0;padding:24px}main{max-width:640px;margin:auto}.card{background:#1c2127;border-radius:12px;padding:20px;margin-bottom:16px}input[type=range]{width:100%}button{padding:8px 14px;border-radius:8px;border:1px solid #444;background:#2a3138;color:#fff;cursor:pointer}button.primary{background:#4a7db5;border-color:#4a7db5}.row{display:flex;gap:8px;flex-wrap:wrap}.switch{position:relative;display:inline-block;width:46px;height:24px;flex:none}.switch input{display:none}.switch .track{position:absolute;inset:0;background:#444;border-radius:999px;transition:.15s;cursor:pointer}.switch .track:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}.switch input:checked+.track{background:#4a7db5}.switch input:checked+.track:before{transform:translateX(22px)}label{display:block;margin:12px 0 4px;color:#aaa;font-size:13px}output{color:#fff}.presets{display:flex;gap:8px;flex-wrap:wrap}</style>
 </head><body><main>
 <h1>🌙 night-screen <small style="color:#888">eye-care suite</small></h1>
 <div class="card"><div class="row">
@@ -270,7 +270,7 @@ std::string embeddedUiHtml() {
 <input id="rest" size="5" title="rest seconds"><span>sec rest</span>
 <label><input id="strict" type="checkbox"> strict lock</label>
 <button id="snooze">Snooze 10m</button></div></div>
-<div class="card"><h3>OLED burn-in guard</h3><div class="row"><label><input id="oled" type="checkbox"> dark screen + roaming clock</label><input id="oledMove" size="5"><span>sec between moves</span></div><p style="color:#777;font-size:12px">Any key or mouse activity exits the guard.</p></div>
+<div class="card"><h3>OLED burn-in guard</h3><div class="row"><label class="switch" style="margin:0"><input id="oled" type="checkbox"><span class="track"></span></label><span><b id="oledState">off</b> — dark screen + roaming clock</span><input id="oledMove" size="5"><span>sec between moves (10–600)</span></div><p style="color:#777;font-size:12px">The switch applies instantly — no need to press Apply. Any key or mouse activity exits the guard.</p></div>
 <div class="card"><button id="save" class="primary">Apply</button> <span style="color:#777;font-size:12px">REST: GET/POST /api/state</span></div>
 <script>
 const $=id=>document.getElementById(id);
@@ -278,9 +278,11 @@ const PRESETS=[["Off",6500,100],["Reading",4500,90],["Night",3400,80],["Dark Roo
 PRESETS.forEach(([n,t,b])=>{const e=document.createElement("button");e.textContent=n;e.onclick=()=>{$("temp").value=t;$("br").value=b;syncOut();};$("presets").appendChild(e);});
 function syncOut(){$("tempOut").textContent=$("temp").value+"K";$("brOut").textContent=$("br").value+"%";}
 $("temp").oninput=$("br").oninput=syncOut;
-async function load(){const r=await fetch("/api/state");const s=await r.json();$("temp").value=s.temperature;$("br").value=s.brightness;$("mode").value=String(s.mode);$("on").value=s.scheduleOn;$("off").value=s.scheduleOff;$("lat").value=s.latitude;$("lon").value=s.longitude;$("brk").checked=s.breakEnabled;$("work").value=s.workMinutes;$("rest").value=s.restSeconds;$("strict").checked=s.strictBreak;$("oled").checked=!!s.oledMode;$("oledMove").value=s.oledMoveSec||60;$("status").textContent=(s.oledMode?"🌙 OLED guard ON · ":"")+(s.enabled?"● filter ON":"○ filter OFF");syncOut();}
+async function load(){const r=await fetch("/api/state");const s=await r.json();$("temp").value=s.temperature;$("br").value=s.brightness;$("mode").value=String(s.mode);$("on").value=s.scheduleOn;$("off").value=s.scheduleOff;$("lat").value=s.latitude;$("lon").value=s.longitude;$("brk").checked=s.breakEnabled;$("work").value=s.workMinutes;$("rest").value=s.restSeconds;$("strict").checked=s.strictBreak;$("oled").checked=!!s.oledMode;$("oledState").textContent=s.oledMode?"ON":"off";$("oledMove").value=s.oledMoveSec||60;$("status").textContent=(s.oledMode?"🌙 OLED guard ON · ":"")+(s.enabled?"● filter ON":"○ filter OFF");syncOut();}
+const clampMove=()=>Math.min(600,Math.max(10,+$("oledMove").value||60));
+$("oled").onchange=async e=>{await send({oledMode:e.target.checked,oledMoveSec:clampMove()});};
 async function send(patch){const cur=await (await fetch("/api/state")).json();Object.assign(cur,patch);const r=await fetch("/api/state",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(cur)});await load();}
-$("save").onclick=()=>send({temperature:+$("temp").value,brightness:+$("br").value,enabled:true,mode:+$("mode").value,scheduleOn:$("on").value||"21:00",scheduleOff:$("off").value||"07:00",latitude:+$("lat").value||0,longitude:+$("lon").value||0,breakEnabled:$("brk").checked,workMinutes:+$("work").value||20,restSeconds:+$("rest").value||20,strictBreak:$("strict").checked,oledMode:$("oled").checked,oledMoveSec:Math.min(600,Math.max(10,+$("oledMove").value||60))});
+$("save").onclick=()=>send({temperature:+$("temp").value,brightness:+$("br").value,enabled:true,mode:+$("mode").value,scheduleOn:$("on").value||"21:00",scheduleOff:$("off").value||"07:00",latitude:+$("lat").value||0,longitude:+$("lon").value||0,breakEnabled:$("brk").checked,workMinutes:+$("work").value||20,restSeconds:+$("rest").value||20,strictBreak:$("strict").checked,oledMode:$("oled").checked,oledMoveSec:clampMove()});
 $("toggle").onclick=async()=>{const cur=await (await fetch("/api/state")).json();send({enabled:!cur.enabled});};
 $("refresh").onclick=load;$("snooze").onclick=()=>send({snoozeMinutes:10});
 load();setInterval(load,5000);
