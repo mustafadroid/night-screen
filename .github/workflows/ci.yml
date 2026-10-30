@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+# The release job attaches zips to GitHub releases; the default token is
+# read-only in locked-down repos, so request write explicitly.
+permissions:
+  contents: write
+
 jobs:
   linux:
     runs-on: ubuntu-24.04
