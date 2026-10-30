@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(night-screen VERSION 1.3.1 LANGUAGES C CXX)
+project(night-screen VERSION 0.0.1 LANGUAGES C CXX)
 
 # C++26 everywhere. Requires GCC 14+, Clang 18+, MSVC 19.40+ / VS 2022 17.10+.
 # If your default compiler is too old, configure with:
