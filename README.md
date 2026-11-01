@@ -49,6 +49,11 @@ Binaries: `build/nightscreen`, `build/nightscreen_tests`
 
 ## Windows build on Linux (cross-compile) + run on Windows
 
+> **Note:** Zig is **only a build tool for cross-compiling the Windows `.exe`
+> from a Linux machine** — it is not part of the app, which stays dependency-free
+> C++. If you build on Windows itself (Visual Studio, see above), or just grab
+> the release zip below, you never need Zig.
+
 No Windows machine needed to *build*: a user-local Zig toolchain cross-compiles
 the exact same sources to a static `nightscreen.exe` (system DLLs only).
 
