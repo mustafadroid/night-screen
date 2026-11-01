@@ -123,6 +123,11 @@ nightscreen::Settings loadOrDefault() {
 
 int main(int argc, char** argv) {
   using namespace nightscreen;
+#if defined(_WIN32)
+  // First statement: if even this line never lands in the log, Windows/AV
+  // killed the process before our code ran — check Protection History.
+  winLog("process started");
+#endif
   std::signal(SIGINT, onSigint);
   std::signal(SIGTERM, onSigint);
 #if !defined(_WIN32)
