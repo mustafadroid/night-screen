@@ -18,6 +18,9 @@
 #include "platform/Autostart.hpp"
 #include "platform/Gamma.hpp"
 #include "platform/Overlay.hpp"
+#if defined(_WIN32)
+#include "platform/win/WinLog.hpp"
+#endif
 
 namespace {
 std::atomic<bool> g_stop{false};
@@ -59,9 +62,11 @@ static void useOwnConsole() {
 static BOOL WINAPI onConsoleCtrl(DWORD ev) {
   if (ev == CTRL_C_EVENT || ev == CTRL_BREAK_EVENT || ev == CTRL_CLOSE_EVENT ||
       ev == CTRL_LOGOFF_EVENT || ev == CTRL_SHUTDOWN_EVENT) {
+    nightscreen::winLog("console/logoff/shutdown signal: restoring display and exiting");
     g_stop = true;
     if (g_daemon) g_daemon->stop();
     for (int i = 0; i < 80 && !g_done.load(); ++i) Sleep(50); // <= ~4s
+    nightscreen::winLog("exit path finished");
     return TRUE;
   }
   return FALSE;
@@ -144,6 +149,7 @@ int main(int argc, char** argv) {
     Daemon d(cfg);
 #if defined(_WIN32)
     g_daemon = &d;
+    nightscreen::winLog("starting (log: night-screen.log in LocalAppData)");
 #endif
     std::jthread killer([](std::stop_token) {
       while (!g_stop.load()) std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -158,6 +164,7 @@ int main(int argc, char** argv) {
 #if defined(_WIN32)
     g_daemon = nullptr;
     g_done = true;
+    nightscreen::winLog("stopped; display restored");
 #endif
     return 0;
   }

@@ -6,6 +6,9 @@
 #include "core/SunCalc.hpp"
 #include "platform/Autostart.hpp"
 #include "platform/Notify.hpp"
+#if defined(_WIN32)
+#include "platform/win/WinLog.hpp"
+#endif
 
 namespace nightscreen {
 namespace {
@@ -91,8 +94,14 @@ void Daemon::run() {
               << "/\n";
   }
   gamma_ = makeGammaController(); // after HTTP is up: XOpenDisplay may block
-  std::cout << "night-screen: gamma backend: " << gamma_->backendName()
-            << (gamma_->available() ? " (display found)" : " (NO DISPLAY - running headless)")
+  std::string backend = gamma_->backendName();
+  bool haveDisplay = gamma_->available();
+#if defined(_WIN32)
+  winLog(std::string("gamma backend: ") + backend +
+         (haveDisplay ? " (display found)" : " (NO DISPLAY)"));
+#endif
+  std::cout << "night-screen: gamma backend: " << backend
+            << (haveDisplay ? " (display found)" : " (NO DISPLAY - running headless)")
             << "\n";
 
   worker_ = std::jthread([this](std::stop_token tok) { applyLoop(tok); });
@@ -108,7 +117,13 @@ void Daemon::run() {
   http_.stop();
   breaks_.stop();
   overlay_.hide();
+#if defined(_WIN32)
+  winLog("restoring display gamma");
+#endif
   gamma_->reset();
+#if defined(_WIN32)
+  winLog("display restored; shutting down");
+#endif
 }
 
 void Daemon::stop() {

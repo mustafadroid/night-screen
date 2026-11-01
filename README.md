@@ -93,6 +93,15 @@ Then open **http://127.0.0.1:7788/** for the same settings in a browser.
 > into the terminal you run them from. `daemon --console` forces a debug
 > console window.
 
+> **No tray icon?** Check these in order:
+> 1. Click the `^` overflow chevron by the clock — Windows 11 hides new tray
+>    icons there by default. Drag the moon out, or enable it permanently under
+>    Settings → Personalization → Taskbar → *Other system tray icons*.
+> 2. Open Task Manager → Details → is `nightscreen.exe` running? If it starts
+>    then vanishes, check Windows Security → Protection history for a block.
+> 3. Run `nightscreen.exe daemon --console` from a terminal for live output,
+>    or read the log at `%LOCALAPPDATA%\night-screen\night-screen.log`.
+
 > **Windows Defender / SmartScreen:** the exe is unsigned (normal for indie
 > open source), so expect a one-time "Unknown publisher → Run anyway" prompt.
 > Verify with `SHA256SUMS.txt`, see [SECURITY.md](SECURITY.md) for details.

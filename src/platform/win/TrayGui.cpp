@@ -16,6 +16,8 @@
 #include <mutex>
 #include <thread>
 
+#include "WinLog.hpp"
+
 namespace nightscreen {
 namespace {
 
@@ -805,7 +807,8 @@ void TrayGui::start(SnapFn get, UpdateFn set, VoidFn quit, VoidFn breakNow,
       nid.hIcon = icon;
       strncpy(nid.szTip, "night-screen", sizeof(nid.szTip) - 1);
       g_ui.nid = nid;
-      Shell_NotifyIconA(NIM_ADD, &g_ui.nid);
+      BOOL added = Shell_NotifyIconA(NIM_ADD, &g_ui.nid);
+      winLog(added ? "tray icon registered" : "ERROR: Shell_NotifyIcon(NIM_ADD) failed");
     }
     refreshPanel();
     MSG msg;
@@ -821,12 +824,23 @@ void TrayGui::start(SnapFn get, UpdateFn set, VoidFn quit, VoidFn breakNow,
   } // release g_threadsMu before waiting
   // Wait until the tray window exists so an immediate balloon/notification
   // can't race into the no-tray fallback.
+  bool shown = false;
   for (int i = 0; i < 100; ++i) {
     {
       std::lock_guard<std::mutex> lk(g_mu);
-      if (g_ui.trayHwnd) break;
+      if (g_ui.trayHwnd) {
+        shown = true;
+        break;
+      }
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
+  winLog(shown ? "tray icon ready" : "ERROR: tray window never appeared");
+  if (!shown) {
+    MessageBoxA(nullptr,
+                "night-screen could not create its tray icon.\n"
+                "See night-screen.log in %LOCALAPPDATA%\\night-screen for details.",
+                "night-screen", MB_OK | MB_ICONERROR | MB_TOPMOST);
   }
 }
 
