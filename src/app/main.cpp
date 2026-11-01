@@ -2,6 +2,7 @@
 // Cross-platform: Linux (X11/Xrandr), Windows (GDI gamma), macOS (CoreGraphics).
 
 #include <atomic>
+#include <cstdio>
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -71,6 +72,21 @@ static BOOL WINAPI onConsoleCtrl(DWORD ev) {
   }
   return FALSE;
 }
+// Last-resort crash reporter: with no console window, a native crash would
+// otherwise be totally silent. Log it and show it.
+static LONG WINAPI onCrash(EXCEPTION_POINTERS* ep) {
+  unsigned long code =
+      ep && ep->ExceptionRecord ? (unsigned long)ep->ExceptionRecord->ExceptionCode : 0;
+  char msg[256];
+  snprintf(msg, sizeof(msg),
+           "night-screen crashed (code 0x%08lX).\n"
+           "Please report this with night-screen.log from\n"
+           "%%LOCALAPPDATA%%\\night-screen attached.",
+           code);
+  nightscreen::winLog("FATAL native exception");
+  MessageBoxA(nullptr, msg, "night-screen", MB_OK | MB_ICONERROR | MB_TOPMOST);
+  return EXCEPTION_EXECUTE_HANDLER;
+}
 #endif
 
 void usage() {
@@ -112,6 +128,7 @@ int main(int argc, char** argv) {
 #if !defined(_WIN32)
   std::signal(SIGHUP, onSigint); // terminal closed: restore gamma, don't strand it
 #else
+  SetUnhandledExceptionFilter(onCrash);
   SetConsoleCtrlHandler(onConsoleCtrl, TRUE); // console X / logoff / shutdown
 #endif
 
